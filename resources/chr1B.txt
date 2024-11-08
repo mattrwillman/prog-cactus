@@ -1,0 +1,8 @@
+Hilliard	results/repeatmasker/Hilliard_1B.fasta.masked
+AGS2000	results/repeatmasker/AGS2000_1B.fasta.masked
+IL02-18228	results/repeatmasker/IL02-18228_1B.fasta.masked
+MO080104	results/repeatmasker/MO080104_1B.fasta.masked
+Attraktion	results/repeatmasker/Attraktion_1B.fasta.masked
+Jagger	results/repeatmasker/Jagger_1B.fasta.masked
+LA03136E71	results/repeatmasker/LA03136E71_1B.fasta.masked
+

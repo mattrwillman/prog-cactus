@@ -1,0 +1,95 @@
+#apptainer exec cactus_v2.9.2.sif cactus-pangenome ./js wheatPangenome.txt --reference Hilliard --outDir wheat-pg --outName wheat-pg --vcf --giraffe --viz --draw
+
+CACTUS_SIF = "/project/gbru_wheat2/fhb/singularity/cactus_v2.9.2.sif"
+TREP_FASTA = "resources/trep-db_nr_Rel-19.fasta"
+ASSEMBLIES = config['ASSEMBLIES']
+
+rule all:
+    input:
+        "results/progressiveCactus/chr1B.xmfa", 
+        "results/progressiveCactus/chr1B.vcf"
+
+rule mask_repeats:
+    input:
+        assembly = "resources/{assembly}", 
+        db = TREP_FASTA
+    output:
+        multiext("results/repeatmasker/{assembly}", 
+            ".masked", 
+            ".out", 
+            ".tbl" 
+        )
+    params:
+        outdir = "results/repeatmasker/", 
+        options = "-e ncbi -small"
+    log:
+        "logs/repeatmasker/{assembly}.log"
+    threads: 12
+    shell:
+        "RepeatMasker -pa {threads} -dir {params.outdir} {params.options} "
+        "-lib {input.db} {input.assembly} | tee {log}"
+
+rule progressive_cactus:
+    input:
+        masked = expand("results/repeatmasker/{assembly}.masked", assembly = ASSEMBLIES), 
+        seqFile = "resources/chr1B.txt"
+    output:
+        hal = "results/progressiveCactus/chr1B.hal"
+    params:
+        cactus_sif = CACTUS_SIF
+    log:
+        "logs/cactus.log"
+    shell:
+        """
+            apptainer exec {params.cactus_sif} cactus \
+            ./js \
+            {input.seqFile} \
+            {output.hal} \
+            --logFile {log} \
+            --batchSystem slurm \
+            --doubleMem true
+        """
+
+rule hal_to_maf:
+    input:
+        "results/progressiveCactus/chr1B.hal"
+    output:
+        "results/progressiveCactus/chr1B.maf"
+    params:
+        cactus_sif = CACTUS_SIF, 
+        chunkSize = "1000000", 
+        reference = "Hilliard"
+    log:
+        "logs/hal2maf.log"
+    shell:
+        """
+            apptainer exec {params.cactus_sif} cactus-hal2maf \
+            --chunkSize {params.chunkSize} \
+            --refGenome {params.reference} \
+            --logFile {log} \
+            ./js \
+            {input} \
+            {output} \
+        """
+
+rule maf_to_xmfa:
+    input:
+        maf = "results/progressiveCactus/chr1B.maf"
+    output:
+        xmfa = "results/progressiveCactus/chr1B.xmfa"
+    threads: 24
+    log:
+        "logs/maf2xmfa.log"
+    shell:
+        "python workflow/scripts/maf2xmfa.py -i {input.maf} -o {output.xmfa} 2> {log}"
+
+rule maf_to_vcf:
+    input:
+        maf = "results/progressiveCactus/chr1B.maf", 
+    output:
+        vcf = "results/progressiveCactus/chr1B.vcf"
+    threads: 24
+    log:
+        "logs/maf2vcf.log"
+    shell:
+        "perl workflow/scripts/maf2vcf.pl -input-maf {input.maf} -output-vcf {output.vcf} 2> {log}"
