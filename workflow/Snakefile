@@ -39,15 +39,14 @@ rule progressive_cactus:
         cactus_sif = CACTUS_SIF
     log:
         "logs/cactus.log"
+    threads: 48
     shell:
         """
             apptainer exec {params.cactus_sif} cactus \
             ./js \
             {input.seqFile} \
             {output.hal} \
-            --logFile {log} \
-            --batchSystem slurm \
-            --doubleMem true
+            --logFile {log}
         """
 
 rule hal_to_maf:
@@ -81,7 +80,7 @@ rule maf_to_xmfa:
     log:
         "logs/maf2xmfa.log"
     shell:
-        "python workflow/scripts/maf2xmfa.py -i {input.maf} -o {output.xmfa} 2> {log}"
+        "python workflow/scripts/maf_to_xmfa.py < {input.maf} > {output.xmfa} 2> {log}"
 
 rule maf_to_vcf:
     input:
