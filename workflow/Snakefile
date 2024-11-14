@@ -3,6 +3,7 @@
 CACTUS_SIF = "/project/gbru_wheat2/fhb/singularity/cactus_v2.9.2.sif"
 TREP_FASTA = "resources/trep-db_nr_Rel-19.fasta"
 ASSEMBLIES = config['ASSEMBLIES']
+REF_ASSEMBLY = "resources/Hilliard_1B.fasta"
 
 rule all:
     input:
@@ -85,10 +86,15 @@ rule maf_to_xmfa:
 rule maf_to_vcf:
     input:
         maf = "results/progressiveCactus/chr1B.maf", 
+        ref = REF_ASSEMBLY
     output:
         vcf = "results/progressiveCactus/chr1B.vcf"
+    params:
+        outDir = "results/progressiveCactus/", 
+        outVcf = "chr1B.vcf"
     threads: 24
     log:
         "logs/maf2vcf.log"
     shell:
-        "perl workflow/scripts/maf2vcf.pl -input-maf {input.maf} -output-vcf {output.vcf} 2> {log}"
+        "perl workflow/scripts/maf2vcf.pl --input-maf {input.maf} "
+        "--output-vcf {params.outVcf} --output-dir {params.outDir} --ref-fasta {input.ref} 2> {log}"
